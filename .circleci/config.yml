@@ -1,0 +1,24 @@
+version: 2.1
+orbs: 
+  kubernetes: circleci/kubernetes@1.3.0
+  aws-cli: circleci/aws-cli@3.1.1
+  jq: circleci/jq@2.2.0
+jobs:
+  create-update:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - checkout
+      - aws-cli/install
+      - kubernetes/install-kubectl
+      - run: aws eks --region us-east-1 update-kubeconfig --name $(aws eks list-clusters | jq '.clusters[0]' -r);
+      - kubernetes/create-or-update-resource:
+          namespace: staging
+          watch-rollout-status: true
+          resource-file-path: k8s/deployment.yaml
+          resource-name: deployment/hello-world
+          show-kubectl-command: true
+workflows:
+  deploy-k8s:
+    jobs:
+      - create-update
